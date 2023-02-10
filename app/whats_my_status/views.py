@@ -53,14 +53,34 @@ def getAllData(request, property, timeFilter):
 @api_view(['POST'])
 def uploadTimeData(request):
     data = request.data
+    serializer = {}
 
-    newData = TimeSpent.objects.create(
-        property = data['property'],
-        timeSpentOn = data['timeSpentOn'],
-        time = data['time']
-    )
+    if 'id' in data.keys():
+        if data['property'] == 'time':
+            item = TimeSpent.objects.get(id=data['id'])
+            serializer = TimeSerializer(instance=item, data=data,partial = True)
 
-    serializer = TimeSerializer(newData, many=False)
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                print('something went wrong')
+        else:
+            item = AmountSpent.objects.get(id=data['id'])
+            serializer = AmountSerializer(instance=item, data=data,partial = True)
+
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                print('something went wrong')
+
+    else:
+        newData = TimeSpent.objects.create(
+            property = data['property'],
+            timeSpentOn = data['timeSpentOn'],
+            time = data['time']
+        )
+        serializer = TimeSerializer(newData, many=False)
+
     return Response(serializer.data)
 
 @api_view(['POST'])
@@ -76,3 +96,9 @@ def uploadAmountData(request):
     serializer = AmountSerializer(newData, many=False)
 
     return Response(serializer.data)
+
+@api_view(['POST'])
+def deleteData(request):
+    data = request.data
+
+    return Response({})
