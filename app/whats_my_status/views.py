@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from whats_my_status.models import AmountSpent, TimeSpent
 from .serializers import TimeSerializer, AmountSerializer
-from datetime import date, timedelta
+from datetime import date
 
 # Create your views here.
 @api_view(['GET'])
@@ -48,30 +48,22 @@ def getAllData(request, property, timeFilter):
             if numberOfDays.days < timeFilterMap[timeFilter]:
                 filteredData.append(dt)
 
+    filteredData.reverse()
+
     return Response(filteredData)
 
 @api_view(['POST'])
 def uploadTimeData(request):
     data = request.data
-    serializer = {}
 
     if 'id' in data.keys():
-        if data['property'] == 'time':
-            item = TimeSpent.objects.get(id=data['id'])
-            serializer = TimeSerializer(instance=item, data=data,partial = True)
+        item = TimeSpent.objects.get(id=data['id'])
+        serializer = TimeSerializer(instance=item, data=data,partial = True)
 
-            if serializer.is_valid():
-                serializer.save()
-            else:
-                print('something went wrong')
+        if serializer.is_valid():
+            serializer.save()
         else:
-            item = AmountSpent.objects.get(id=data['id'])
-            serializer = AmountSerializer(instance=item, data=data,partial = True)
-
-            if serializer.is_valid():
-                serializer.save()
-            else:
-                print('something went wrong')
+            print('something went wrong')
 
     else:
         newData = TimeSpent.objects.create(
@@ -87,13 +79,21 @@ def uploadTimeData(request):
 def uploadAmountData(request):
     data = request.data
 
-    newData = AmountSpent.objects.create(
-        property = data['property'],
-        amountSpentOn = data['amountSpentOn'],
-        amount = data['amount']
-    )
+    if 'id' in data.keys():
+        item = AmountSpent.objects.get(id=data['id'])
+        serializer = AmountSerializer(instance=item, data=data,partial = True)
 
-    serializer = AmountSerializer(newData, many=False)
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            print('something went wrong')
+    else:
+        newData = AmountSpent.objects.create(
+            property = data['property'],
+            amountSpentOn = data['amountSpentOn'],
+            amount = data['amount']
+        )
+        serializer = AmountSerializer(newData, many=False)
 
     return Response(serializer.data)
 
@@ -101,4 +101,11 @@ def uploadAmountData(request):
 def deleteData(request):
     data = request.data
 
-    return Response({})
+    if data['property'] == 'time':
+        item = TimeSpent.objects.get(id=data['id'])
+        item.delete()
+    else:
+        item = AmountSpent.objects.get(id=data['id'])
+        item.delete()
+
+    return Response({'status':'success','message':'deleted successfully'})
